@@ -1,0 +1,193 @@
+---
+title: "HW07"
+author: "Brian Pennington"
+date: "November 16, 2016"
+output: html_document
+---
+Importing Libraries
+```{r}
+library(tidyverse)
+library(tidytext)
+library(rvest)
+library(stringr)
+```
+
+This is the function I made to pull and clean up the data from http://www.presidency.ucsb.edu/sou.php
+This scrapes the website for the content of the speeches
+Then it breaks it down into the tidytext format
+```{r}
+get_speeches <- function(x, y, z){
+  df <- read_html(x) %>%
+    html_nodes(".displaytext , p") %>%
+    html_text() 
+  
+  speech <- data_frame(text = df) %>%
+  mutate(author = y,
+         docnumber = z,
+         parnumber = row_number())
+  speech <- unnest_tokens(speech, para, text, token = "words")  
+  return(speech)
+}
+```
+
+
+Getting most recent Clinton's Speeches prior to November 8th
+Following the copy and paste rule, I imagine we could simplify this format, but I am not completely sure how to. Suggestions welcome
+```{r}
+Clinton1 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119498", "Clinton", "1")
+Clinton2 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119502", "Clinton", "2")
+Clinton3 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119501", "Clinton", "3")
+Clinton4 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119500", "Clinton", "4")
+Clinton5 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119499", "Clinton", "5")
+Clinton6 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119497", "Clinton", "6")
+Clinton7 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119157", "Clinton", "7")
+Clinton8 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119156", "Clinton", "8")
+Clinton9 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119155", "Clinton", "9")
+Clinton10 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119154", "Clinton", "10")
+Clinton_Corpus <- bind_rows(Clinton1, Clinton2, Clinton3, Clinton4, Clinton5, Clinton6, Clinton7, Clinton8, Clinton9, Clinton10)
+```
+
+
+Getting most recent Sander's Speeches during his Presidential Run
+Same for clinton's speeches. How can we simplify this process?
+```{r}
+Sanders1 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=118045", "Sanders", "1")
+Sanders2 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117194", "Sanders", "2")
+Sanders3 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117513", "Sanders", "3")
+Sanders4 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=116694", "Sanders", "4")
+Sanders5 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117516", "Sanders", "5")
+Sanders6 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117511", "Sanders", "6")
+Sanders7 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=111440", "Sanders", "7")
+Sanders8 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117514", "Sanders", "8")
+Sanders9 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=117512", "Sanders", "9")
+Sanders10 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=114496", "Sanders", "10")
+Sanders_Corpus <- bind_rows(Sanders1, Sanders2, Sanders3, Sanders4, Sanders5, Sanders6, Sanders7, Sanders8, Sanders9, Sanders10)
+```
+
+Getting Trump's most recent speeches prior to Nov 8th
+```{r}
+Trump1 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119182", "Trump", "1")
+Trump2 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119181", "Trump", "2")
+Trump3 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119188", "Trump", "3")
+Trump4 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119187", "Trump", "4")
+Trump5 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119186", "Trump", "5")
+Trump6 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119185", "Trump", "6")
+Trump7 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119184", "Trump", "7")
+Trump8 <- get_speeches('http://www.presidency.ucsb.edu/ws/index.php?pid=119183', "Trump", "8")
+Trump9 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119174", "Trump", "9")
+Trump10 <- get_speeches("http://www.presidency.ucsb.edu/ws/index.php?pid=119172", "Trump", "10")
+Trump_Corpus <- bind_rows(Trump1, Trump2, Trump3, Trump4, Trump5, Trump6, Trump7, Trump8, Trump9, Trump10)
+```
+
+One of the first thinks we even notice is the sheer difference in corpus size.
+Sanders = 62,760
+Clinton = 68,670
+Trump = 35,997
+In the same number of speeches, Trump is using half the number of words. There may be an attentional component to Republican and Democratic voterrs that warrants further analysis
+
+Bind to create a single corpus of text
+Inserting Sentimen
+```{r}
+speech_corpus <- bind_rows(Clinton_Corpus, Sanders_Corpus, Trump_Corpus)
+```
+We now have a fairly decent size corpus
+
+Inserting Sentiment Column
+```{r}
+speech_corpus_bing <- speech_corpus %>%
+  inner_join(get_sentiments("bing"))
+
+speech_corpus_affin <- speech_corpus %>%
+  inner_join(get_sentiments("afinn"))
+#167427 - 11562
+speech_corpus_nrc <- speech_corpus %>%
+  inner_join(get_sentiments("nrc"))
+#167427 - 43920
+```
+for the bing sentiment, we ended up throwing out 156,819 words
+
+for the afinn sentiment, we ended up throwing out 155, 865 words
+
+for the nrc sentiment, we ended up throwing out 123,507
+
+For each of these sentiment, a majority of our words were discarded when inserting our sentiment
+
+I am curious as to the reliability between each of these sentiment dictionaries which we could analyze, but thats for another assignment
+
+
+Graph on the Percent of Speech that is Positive and Negative
+```{r}
+speech_corpus_bing %>%
+  count(author, sentiment) %>%
+  mutate(percent= n/sum(n))%>%
+  print()%>%
+  ggplot(aes(author, percent, fill= author)) +
+  geom_bar(alpha = .75, stat = "identity", width = .5 )+
+  facet_grid(~sentiment)+
+  labs(x= "Speaker",
+       y= "Percentage of Text") +
+  coord_flip()
+```
+We notice something instantly which is that clinton tends to give speeches more with positive sentiment, Trump with negative sentiment, and Sanders with a mix.
+
+
+Candidate and Emotional Frequency
+```{r}
+speech_corpus_nrc %>%
+  count(author, sentiment) %>%
+  mutate(percent = n/sum(n)) %>%
+  print()%>%
+  ggplot(aes(sentiment, percent, fill= sentiment)) +
+  geom_bar(alpha = .8, stat = "identity")+
+  facet_wrap(~author) +
+  coord_flip()
+```
+We examine the percent of speeches that encompass each of these emotions. We see that the rhetoric of Sanders and Clinton seems to overlap in terms of emotionality. Trump seems to incorporate more negativity and fear in his speeches.
+
+Another way of looking at the above graph
+Candidate and Emotional Frequency
+```{r}
+speech_corpus_nrc %>%
+  count(author, sentiment) %>%
+  ggplot(aes(sentiment, n)) +
+  geom_freqpoly(aes(color= author, group= author), stat = "identity")
+```
+We notice that Clinton and Sanders do overlap for the most part with potential gaps at fear, anger, and sadness, whereas Trump has 
+
+
+```{r}
+speech_corpus_nrc %>%
+  count(author, sentiment) %>%
+  mutate(percent= n/sum(n)) %>%
+  ggplot(aes(sentiment, percent)) +
+  geom_freqpoly(aes(color= author, group= author), stat = "identity")
+```
+
+
+
+```{r}
+speech_corpus_nrc %>%
+  count(sentiment, author) %>%
+  group_by(sentiment) %>%
+  mutate(percent = n/sum(n)) %>%
+  print() %>%
+  ggplot(aes(author, percent, fill= author)) +
+  geom_bar(stat = "identity", alpha = .85) +
+  facet_wrap(~sentiment) +
+  coord_flip() +
+  labs(x = "sentiment",
+       y= "% of Sentiment Between Candidates")
+```
+Here we can see percent of an emotion from each candidate, and I believe that this shows that out of the angry sentiment Sanders uses the most angry words. I believe this shows us that Sanders and clinton may not line up as closely as we first assumed.
+
+```{r}
+speech_corpus_affin %>%
+  group_by(author, docnumber) %>%
+  mutate(numeric_sentiment = cumsum(score)) %>%
+  mutate(percent = as.integer(docnumber)) %>%
+  mutate(percent= cumsum(percent/sum(percent))) %>%
+  ggplot(aes(percent, numeric_sentiment, color = docnumber))+
+  geom_freqpoly(stat = "identity") +
+  facet_wrap(~author)
+```
+Finally, we look at the cumulative percent of each document and how the sentiment changes as the speech is given. I think the most interesting finding is the versatility in Sanders speeches. He doesn't necessarily follow a patter as the other two. 

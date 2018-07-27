@@ -1,0 +1,142 @@
+---
+title: "Homework2"
+author: "Brian Pennington"
+date: "October 12, 2016"
+output: html_document
+---
+
+`library("rcfss")
+library("dplyr")
+library("ggplot2")
+library("tidyverse")
+data("gun_deaths")
+?gun_deaths
+print(gun_deaths)`
+#Part 1
+#In what month do the most gun deaths occur?
+Grouped by Month and then counted each month
+`by_month <- group_by(gun_deaths, month) #grouped the data with teh columns I needed
+  summarise(by_month,
+    count= n()) #counted how many gun deaths there were each month`
+July
+Ran a simple bar graph to visualize results 
+`ggplot(by_month,
+       aes(month)) +
+  geom_bar() +
+  coord_cartesian(xlim = c(1,12), ylim = c(6800, 9200))`
+
+#What is the most common intent in gun deaths? Do most people killed by guns die in suicides,homicides, or accidental shootings?
+`by_intent <- group_by(gun_deaths, intent)
+  summarise(by_intent, 
+    count = n())`
+I approached this one just like the previous question
+Suicides
+`ggplot(by_intent,
+ aes(intent)) +
+  geom_bar(aes(fill= "pink"))`
+
+#What is the average age of females killed by guns?
+`female.victims <- filter(gun_deaths, sex == "F") 
+summarise(female.victims, mean(age, na.rm = TRUE))
+summarise(female.victims, median(age, na.rm = TRUE))`
+roughly 44
+`ggplot(female.victims) +
+  geom_histogram(aes(age), binwidth = 10)`
+
+#How many white males with at least a high school education were killed by guns in 2012?
+`gun_deaths %>%   
+  select(education, race, year, sex) %>% select appropriate variables
+  filter(sex == "M") %>% #filtered by males
+  filter(race == "White") %>% #filtered by white
+  filter(year == "2012") %>% #filtered for the year 2012
+  filter(education == "HS/GED" | education == "BA+") %>% #filtered for education between HS and college+
+  summarise(n()) #counted how many were in the data`
+ 10,941
+
+#Which season of the year has the most gun deaths?
+`gun_deaths %>%
+  select(month) %>%
+  mutate(seasons = cut(month, #created new varialbe called seasons
+                       breaks = c(0, 3, 6, 9, 12), #months between these breaks were then placed into
+                       labels = c("Winter", "Spring", "Summer", "Fall")))%>% #these categories
+  ggplot(aes(x = seasons)) +
+  geom_bar()`
+
+summer
+
+
+#What is the relationship between race and intent?
+`gun_deaths %>%
+ count(race, intent) #gave the frequencies of race and intent
+ggplot(gun_deaths, aes(race, fill= intent)) +
+  geom_bar(position = "dodge")`
+Whites are more likely to utilize guns for suicide, 
+whereas blacks use guns more for homicide.
+Hispanics seem to use guns more for homicide
+
+
+#Part 2
+`data(dadmom)
+dadmom%>%
+  unite(`d`, `named`, `incd`, sep = "_") %>%
+  unite(`m`, `namem`, `incm`, sep = "_") %>%`
+decided to unite before gathering and separating because it made it easier to separate d and m
+  `gather(`d`, `m`, key = "key", value= "value") %>%`
+then i gathered all the data so that I could then...
+  `separate(value, into = c("name", "income"), sep = "_") %>%`
+separate it according to name and income  
+  `arrange(desc(income))`
+arranged it by descending income so it would be easier to read
+
+I am not completely sure how useful the famid is.
+Obviously, there are duplicates we can clean up
+But, I am not sure if I should manipulate them in any way
+
+#Part 3
+`court1 <- read.csv("data/SCDB_01.csv")
+court2 <- read.csv("data/SCDB_03.csv")
+courtdata <- bind_rows(court2, court1)`
+imported datat sets and combined them
+
+#1
+`courtdata%>%
+  select(term, majVotes, minVotes) %>%`
+selected the necessary variables so it would be easier to view  
+  `mutate("votedif" = majVotes - minVotes == 1) %>%`
+created a new column in order to create the logical outcome of 1 for yes or 0 for no
+  `group_by(term, votedif)%>%`
+grouped by term and votedif in order to get all categories between these two variables  
+  `summarise(n = n()) %>%`
+got the frequency for each of the categories. this would become the numerator  
+  `group_by(term)%>%`
+grouped by term in order to get ride of the votedif category
+  `mutate(npercent = n/sum(n))%>%`
+created a new column that would be the percent
+because it is grouped by term, it will take each n in the categories from the previous summarize, our numerator
+for each year, it will sum the different n values to get the denominator
+  `filter(votedif == "TRUE")`
+filtered to see only the values that had a true split decision
+
+
+#2
+`courtdata%>%
+  select(justiceName, majority) %>%
+  mutate("majority" = majority - 1) %>%
+  group_by(justiceName, majority) %>%
+  summarise(n = n()) %>%
+  group_by(justiceName)%>%
+  mutate(npercent = n/sum(n))%>%
+  filter(justiceName == "AScalia")`
+followed the same procedure outlined in question1
+82% of Scalia's vote were in the majority
+
+#3
+`courtdata%>%
+  select(term, direction) %>% 
+  mutate("direction" = direction - 1) %>%
+  group_by(term, direction) %>%
+  summarise(n = n()) %>%
+  group_by(term)%>%
+  mutate(npercent = n/sum(n)) %>%
+  filter(direction == "0")`
+followed the same procedure outlined in question 1

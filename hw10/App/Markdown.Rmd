@@ -1,0 +1,137 @@
+---
+title: "Sentiment Analysis of Campaign Speeches"
+author: "Brian Pennington"
+date: "December 7, 2016"
+output: html_document
+---
+
+```{r}
+library(shiny)
+library(tidyverse)
+library(tidytext)
+library(rvest)
+library(feather)
+library(stringr)
+library(rsconnect)
+
+```
+
+```{r}
+total_tokens <- read_feather("total_tokens.feather")
+```
+
+```{r}
+server <- function(input, output) {
+  
+  output$wordInput <- renderUI({
+    selectizeInput(
+      "wordInput",
+      "Word",
+      choices = total_tokens$word,
+      multiple = TRUE
+    )
+  })
+  
+  output$Frequency <- renderPlot({
+    tokens <- total_tokens %>%
+      count(author, score, month, year, word) %>%
+      group_by(author) %>%
+      mutate(percent = n / sum(n)) %>%
+      ungroup %>%
+      filter(
+        author %in% input$authorInput,
+        score >= input$sentInput[1],
+        score <= input$sentInput[2],
+        month %in% input$monthInput,
+        year %in% input$yearInput)
+    
+    if(!is.null(input$wordInput)){
+      tokens <- filter(tokens, word %in% input$wordInput)
+    }
+    
+    ggplot(tokens, aes(author, percent, fill = author)) +
+      geom_bar(stat = "identity", alpha = .8)
+  })
+  
+  
+  output$Count <- renderTable({
+    tokens1 <- total_tokens %>%
+      filter(
+        author %in% input$authorInput,
+        score >= input$sentInput[1],
+        score <= input$sentInput[2],
+        month %in% input$monthInput,
+        year %in% input$yearInput)
+    
+    if(!is.null(input$wordInput)){
+      tokens1 <- filter(tokens, word %in% input$wordInput)
+    }
+    
+    tokens1 %>%
+      count(author)
+  })
+  
+  output$Words <- renderTable({
+    tokens2 <- total_tokens %>%
+      filter(
+        author %in% input$authorInput,
+        score >= input$sentInput[1],
+        score <= input$sentInput[2],
+        month %in% input$monthInput,
+        year %in% input$yearInput)
+    
+    if(!is.null(input$wordInput)){
+      tokens2 <- filter(tokens, word %in% input$wordInput)
+    }
+    tokens2 %>%
+      count(author, word)
+  })
+}  
+```
+
+
+
+```{r}
+ui <- fluidPage(titlePanel("Word Analysis of 2016 Presidental Campaign Speeches"),
+                sidebarLayout(
+                  sidebarPanel(
+                    selectInput(
+                      "authorInput",
+                      "Speaker",
+                      choices = c("Clinton", "Cruz/Kasich/Rubio", "Sanders", "Trump"),
+                      multiple = TRUE,
+                      selected = c("Clinton", "Cruz/Kasich/Rubio", "Sanders", "Trump")
+                    ),
+                    sliderInput(
+                      "sentInput",
+                      "Sentiment Value",
+                      min = -5,
+                      max = 5,
+                      value = c(-5, 5)
+                    ),
+                    selectInput(
+                      "monthInput",
+                      "Month",
+                      choices = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"),
+                      selected = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"),
+                      multiple = TRUE
+                    ),
+                    selectInput(
+                      "yearInput",
+                      "Year",
+                      choices = c("2015", "2016"),
+                      selected = c("2015", "2016"),
+                      multiple = TRUE
+                    ),
+                    uiOutput("wordInput")
+                  ),
+                  mainPanel(plotOutput("Frequency"),
+                            tableOutput("Count"), 
+                            tableOutput("Words"))
+                ))
+```
+
+```{r}
+runApp()
+deployApp(appDir = "App", appName = "Speeches")
+```

@@ -1,1 +1,3 @@
-# Computational_Social_Sciences
+# CSS Homework
+
+The following projects are all of the assignments that I completed while enrolled in Computing for the Social Sciences. After reviewing the basics of R, this course required an intermediate grasp on R to truly leverage R to create, scrape, pull, clean, and tidy any data set of any data type. The course also featured different analyses that could be applied and how to leverage R's graphics and presentation format to communicate findings and results.

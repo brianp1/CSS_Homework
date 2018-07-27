@@ -1,0 +1,130 @@
+---
+title: "Programming Exercises"
+author: "Your Name"
+date: "October 19, 2016"
+output: github_document
+---
+
+## Load necessary libraries
+
+```{r, echo = TRUE}
+library(tidyverse)
+```
+
+## Compute the mean of every column in `mtcars`
+
+### Using a `for` loop
+
+```{r}
+mtcars
+output <- vector("integer", ncol(mtcars))
+  for(i in seq_along(mtcars)) {
+    output[[i]] <- mean(mtcars[[i]])
+  }
+output
+```
+
+I feel like something is wrong in my code since I didn't get a 11 x 1 tibble
+
+### Using a `map` function
+
+```{r}
+map(mtcars, mean)
+```
+
+## Compute the number of unique values in each column of `iris`
+
+### Using a `for` loop
+
+```{r}
+iris
+
+head(iris)
+as_tibble(iris)
+```
+
+```{r}
+output <- vector("double", ncol(iris))
+for (i in seq_along(iris)) { 
+  output[[i]] <- length(unique(iris[[i]])) }
+output
+```
+
+Seeing as I ran into the same problem another student did and the solution to that particular problem is one the discussion of github, I fell compelled to explain the code. when we have iris[[1]], we have all values from the first column in the iris dataset. Adding unique, shows us all the unique values from the first column. adding the length function, it calculates how many elements are in that vector
+
+```{r}
+#a possible way to double check my work would be run this code for each column
+iris %>%
+  select(Sepal.Length) %>%
+  unique() %>%
+  summarise(n())
+```
+
+### Using a `map` function
+
+```{r}
+map(iris, unique) %>%
+  map_dbl(length)
+
+```
+
+## Write a function to calculate length of sides in a right-triangle using the Pythagorean Theorem
+
+```{r}
+pythagorean1 <- function(a, b){
+  if(a == 3 && b == 4){
+    return(sqrt(a^2 + b^2))
+  }
+}
+
+pythagorean2 <- function(b, c){
+  if(b == 4 && c == 5){
+    return(sqrt(b^2 + c^2))
+  }
+}
+
+pythagorean3 <- function(a, c){
+  if(a == 3 && b == 5){
+    return(sqrt(a^2 + c^2))
+  }
+}
+
+pythagorean4 <- function(a, b, c){
+  if(a == 3 && b == 4 && c == 5){
+    return(c)
+  }
+}
+
+pythagorean5 <- function(a){
+  if(a == 3){
+    return("Not a triangle")
+  }
+}
+ 
+pythagorean1.b <- function(a, b){
+  if(a == 3 && b == "4"){
+    return(sqrt(a^2 + b^2))
+  }
+}
+
+#I mean it works but obviously not what you're looking for, and I dont know how to figure this out.
+```
+
+### Check that function to make sure the output is correct
+
+```{r, echo = TRUE, error = TRUE}
+pythagorean1(a = 3, b = 4)
+pythagorean2(b = 4, c = 5)
+pythagorean3(a = 3, c = 5)
+pythagorean4(a = 3, b = 4, c = 5)
+pythagorean5(a = 3)
+pythagorean1.b(a = 3, b = "4")
+```
+
+## Session info
+
+```{r, echo = TRUE}
+devtools::session_info()
+```
+
+

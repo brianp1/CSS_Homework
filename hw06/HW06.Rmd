@@ -1,0 +1,140 @@
+---
+title: "HW06"
+author: "Brian Pennington"
+date: "November 9, 2016"
+output: html_document
+---
+Part 1
+Libraries
+```{r}
+
+library(geonames) 
+library(tidyverse)
+library(knitr)
+library(gapminder)
+library(countrycode)
+getOption("geonamesUsername")
+```
+
+Pulling data from GeoNames
+```{r}
+countryInfo <- GNcountryInfo()
+
+countryInfo %>%
+  tbl_df()%>%
+  head()
+```
+
+Data was pulled in as characters
+Need to transform to numbers
+```{r}
+countryInfo <- countryInfo %>%
+  transform(areaInSqKm = as.numeric(areaInSqKm))
+```
+
+Need to combine GeoNames with Gapminders
+Create the Population Density Variable
+```{r}
+fulldata <- gapminder %>%
+  mutate(countryCode = countrycode(gapminder$country, "country.name", "iso2c")) %>%
+  left_join(countryInfo[2:17]) %>%
+  mutate(popden = pop/areaInSqKm)
+```
+
+Redone Graph
+```{r, echo= FALSE}
+ggplot(aes(popden, lifeExp)) +
+  geom_point(alpha = .2) +
+  geom_smooth() +
+  scale_x_log10() +
+  labs(title = "As population  density increases, life expectancy increases",
+       x = "Population Density",
+       y = "Average life expectancy")
+```
+
+
+
+Part 2
+
+Pulling necessary libraries and getting up API URL
+```{r}
+library(tidyverse)
+library(httr)
+library(stringr)
+library(knitr)
+library(curl)
+library(purrr)
+
+spotifyalbumURL <- "https://api.spotify.com/v1/artists/"
+spotifyalbumsongsURL <- "https://api.spotify.com/v1/albums/{id}/tracks"
+```
+
+Pulling the data and assignig to its corresponding artist
+Save it as a single file (may not be the best way to do it)
+These are the top 20 artists for 2016 according to Billboard
+(http://www.billboard.com/artists/top-100?page=1)
+```{r}
+billboard20 <- data.frame(
+  drake  = "https://play.spotify.com/artist/3TVXtAsR1Inumwj472S9r4",
+  justin_bieber = "https://play.spotify.com/artist/1uNFoZAHBGtllmzznpCI3s", 
+  twentyone_pilots = "https://play.spotify.com/artist/3YQKmKGau1PzlVlkL1iodx",
+  chainsmokers ="https://play.spotify.com/artist/69GGBxA162lTqCwzJG5jLp", 
+  rihanna = "https://play.spotify.com/artist/5pKCCKE2ajJHZ9KAiaK11H",
+  adele = "https://play.spotify.com/artist/4dpARuHxo51G3z768sgnrY",
+  shawn_mendes = "https://play.spotify.com/artist/7n2wHs1TKAczGzO7Dd2rGr",
+  arianna_grande = "https://play.spotify.com/artist/66CXWjxzNUsdJxJ2JdwvnR",
+  desiigner = "https://play.spotify.com/artist/7pFeBzX627ff0VnN6bxPR4",
+  future = "https://play.spotify.com/artist/1RyvyyTE3xzB2ZywiAwp0i",
+  bryson_tiller = "https://play.spotify.com/artist/2EMAnMvWE2eb56ToJVfCWs",
+  fifth_harmony = "https://play.spotify.com/artist/1l8Fu6IkuTP0U5QetQJ5Xt",
+  the_weekend = "https://play.spotify.com/artist/1Xyo4u8uXC1ZmMpatF05PJ",
+  meghan_trainor = "https://play.spotify.com/artist/6JL8zeS1NmiOftqZTRgdTz", 
+  sia = "https://play.spotify.com/artist/5WUlDfRSoLAfcVSX1WnrxN", 
+  mike_posner = "https://play.spotify.com/artist/2KsP6tYLJlTBvSUxnwlVWa", 
+  calvin_harris = "https://play.spotify.com/artist/7CajNmpbOovFoOoasH2HaY", 
+  selena_gomez = "https://play.spotify.com/artist/0C8ZW7ezQVs4URX5aX7Kqx", 
+  dnce = "https://play.spotify.com/artist/6T5tfhQCknKG4UnH90qGnz",
+  charlie_puth = "https://play.spotify.com/artist/6VuMaDnrHyPL1p4EHjYLi7")
+```
+
+Need to mutate the URLs in order to pull the Spotify ID
+Then use the new API URL to pull data from Spotify
+```{r}
+billboard20 <- billboard20 %>%
+  gather("artists", "links") %>%
+  mutate(id = substring(links, 33)) %>% 
+  mutate(APIURL = str_c(spotifyalbumURL, id, "/albums"))
+```
+
+Dr. Soltoff's code to unnest
+
+ get results using jsonlite
+```{r}
+results <- map(billboard20$APIURL, fromJSON, flatten = TRUE)
+```
+  the json response from Spotify has lots of unnecessary info
+  we only want to keep the element called "items" from the original
+  response
+```{r}
+results_clean <- vector("list", length(results))
+for(artist in seq_along(results)){
+  results_clean[[artist]] <- results[[artist]]$items
+}
+```
+  the data is still not very clean - lets combine all the results into a single data frame
+  and fix the artists column - currently it is stored as a list-column
+```{r}
+results_clean <- results_clean %>%
+  bind_rows() %>%
+  tbl_df() %>%
+  unnest(artists)
+```
+
+I need to rename columns due to replication in column names
+Here is how far I got
+```{r}
+variablenum = c(1:13)
+results_varnum = rbind(results_clean, variablenum)
+```
+Possibly using a split function here may help
+If I were to continue, I would need to get rid of the duplicate observations which would be tricky as well. 

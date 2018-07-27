@@ -1,0 +1,51 @@
+---
+title: "Exploring World Bank Data"
+author: "Your Name"
+date: "October 19, 2016"
+output: github_document
+---
+
+## Load necessary libraries
+
+```{r, echo = TRUE}
+library(tidyverse)
+```
+
+## Write a function to import the data files
+
+```{r}
+import <- function(file){
+df <- read_csv(file, skip = 4) 
+    df$X62 <- NULL
+    df$`Indicator Code` <- NULL
+    df$`Country Code` <- NULL
+    df <- gather(df, year, values, `1960`:`2016`)
+    df <- spread(df, `Indicator Name`, values)
+}
+
+```
+
+## Import the data
+
+```{r}
+finaldata <- list.files("data_world_bank", full.names = TRUE) %>%
+  map_df(import)
+```
+
+## Explore the data
+```{r, eval = FALSE}
+finaldata %>%
+  select(year, `Country Name`, `Adjusted net national income (current US$)`)%>%
+  group_by(`Country Name`, na.rm = FALSE) %>%
+  ggplot(aes(x= year, y= `Adjusted net national income (current US$)`, color= `Country Name`)) +
+    geom_smooth()
+ 
+```
+I was still working on the data analysis, but here is what I have so far for this section too
+## Session info
+
+```{r, echo = TRUE}
+devtools::session_info()
+```
+
+
